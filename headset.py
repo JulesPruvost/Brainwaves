@@ -1,9 +1,19 @@
 import cortex
 from cortex import Cortex
+import serial
+import json
+import re
+
+try:
+    ser = serial.Serial(port='COM10', baudrate=9600, timeout=.1)
+except Exception as e:
+    print("Error initializing serial port: ", e)
+    ser = None
+
+isNeutral = False
 
 class Headset():
     def __init__(self, app_client_id, app_client_secret, callback=None, **kwargs):
-        self.callback = callback
         self.c = Cortex(app_client_id, app_client_secret, debug_mode=True, **kwargs)
         self.c.bind(create_session_done=self.on_create_session_done)
         self.c.bind(query_profile_done=self.on_query_profile_done)
@@ -13,6 +23,7 @@ class Headset():
         self.c.bind(get_mc_active_action_done=self.on_get_mc_active_action_done)
         self.c.bind(mc_action_sensitivity_done=self.on_mc_action_sensitivity_done)
         self.c.bind(inform_error=self.on_inform_error)
+
 
     def start(self, profile_name, headsetId=''):
         """
@@ -35,28 +46,34 @@ class Headset():
         if profile_name == '':
             raise ValueError('Empty profile_name. The profile_name cannot be empty.')
 
+
         self.profile_name = profile_name
         self.c.set_wanted_profile(profile_name)
+
 
         if headsetId != '':
             self.c.set_wanted_headset(headsetId)
 
+
         self.c.open()
-    
+   
     def load_profile(self, profile_name):
         """
         To load a profile
+
 
         Parameters
         ----------
         profile_name : str, required
             profile name
 
+
         Returns
         -------
         None
         """
         self.c.setup_profile(profile_name, 'load')
+
 
     def unload_profile(self, profile_name):
         """
@@ -66,26 +83,31 @@ class Headset():
         profile_name : str, required
             profile name
 
+
         Returns
         -------
         None
         """
         self.c.setup_profile(profile_name, 'unload')
 
+
     def save_profile(self, profile_name):
         """
         To save a profile
+
 
         Parameters
         ----------
         profile_name : str, required
             profile name
 
+
         Returns
         -------
         None
         """
         self.c.setup_profile(profile_name, 'save')
+
 
     def subscribe_data(self, streams):
         """
@@ -94,10 +116,12 @@ class Headset():
         'fac' : Facial expression
         'sys': training event
 
+
         Parameters
         ----------
         streams : list, required
             list of streams. For example, ['sys']
+
 
         Returns
         -------
@@ -105,21 +129,25 @@ class Headset():
         """
         self.c.sub_request(streams)
 
+
     def get_active_action(self, profile_name):
         """
         To get active actions for the mental command detection.
         Maximum 4 mental command actions are actived. This doesn't include "neutral"
+
 
         Parameters
         ----------
         profile_name : str, required
             profile name
 
+
         Returns
         -------
         None
         """
         self.c.get_mental_command_active_action(profile_name)
+
 
     def get_sensitivity(self, profile_name):
         """
@@ -128,10 +156,12 @@ class Headset():
         The order of the values must follow the order of the active actions, as returned by mentalCommandActiveAction
         If the number of active actions < 4, the rest numbers are ignored.
 
+
         Parameters
         ----------
         profile_name : str, required
             profile name
+
 
         Returns
         -------
@@ -139,11 +169,12 @@ class Headset():
         """
         self.c.get_mental_command_action_sensitivity(profile_name)
 
+
     def set_sensitivity(self, profile_name, values):
         """
         To set the sensitivity of the 4 active mental command actions. This doesn't include "neutral".
         The order of the values must follow the order of the active actions, as returned by mentalCommandActiveAction
-        
+       
         Parameters
         ----------
         profile_name : str, required
@@ -154,16 +185,20 @@ class Headset():
                          [neutral, push, pull] -> sensitivity [7, 8, 5, 5] <=> push : 7 , pull: 8  , others resvered
 
 
+
+
         Returns
         -------
         None
         """
         self.c.set_mental_command_action_sensitivity(profile_name, values)
 
+
     # callbacks functions
     def on_create_session_done(self, *args, **kwargs):
         print('on_create_session_done')
         self.c.query_profile()
+
 
     def on_query_profile_done(self, *args, **kwargs):
         print('on_query_profile_done')
@@ -175,10 +210,11 @@ class Headset():
             # create profile
             self.c.setup_profile(self.profile_name, 'create')
 
+
     def on_load_unload_profile_done(self, *args, **kwargs):
         is_loaded = kwargs.get('isLoaded')
         print("on_load_unload_profile_done: " + str(is_loaded))
-        
+       
         if is_loaded == True:
             # get active action
             self.get_active_action(self.profile_name)
@@ -186,16 +222,18 @@ class Headset():
             print('The profile ' + self.profile_name + ' is unloaded')
             self.profile_name = ''
 
+
     def on_save_profile_done (self, *args, **kwargs):
         print('Save profile ' + self.profile_name + " successfully")
         # subscribe mental command data
         stream = ['com']
         self.c.sub_request(stream)
 
+
     def on_new_com_data(self, *args, **kwargs):
         """
         To handle mental command data emitted from Cortex
-        
+       
         Returns
         -------
         data: dictionary
@@ -203,15 +241,17 @@ class Headset():
         """
         data = kwargs.get('data')
         print('mc data: {}'.format(data))
-        if self.callback:
-            self.callback(data)
+        self.my_callback(data)
+
+
+
 
     def on_get_mc_active_action_done(self, *args, **kwargs):
         data = kwargs.get('data')
         print('on_get_mc_active_action_done: {}'.format(data))
         self.get_sensitivity(self.profile_name)
-        if self.callback:
-            self.callback(data)
+        self.my_callback(data)
+
 
     def on_mc_action_sensitivity_done(self, *args, **kwargs):
         data = kwargs.get('data')
@@ -223,8 +263,10 @@ class Headset():
         else:
             # set sensitivity done -> save profile
             self.save_profile(self.profile_name)
-        if self.callback:
-            self.callback(data)
+        self.my_callback(data)
+
+
+
 
     def on_inform_error(self, *args, **kwargs):
         error_data = kwargs.get('error_data')
@@ -238,5 +280,42 @@ class Headset():
             print('Get error ' + error_message + ". Disconnect headset to fix this issue for next use.")
             self.c.disconnect_headset()
 
+
+    def my_callback(self, data):
+        # Exclude the 'time' key
+        filtered_data = {key: value for key, value in data.items() if key != 'time'}
+        # Join key-value pairs  
+        result_string = ",".join(f"{key}:{value}" for key, value in filtered_data.items())
+    
+        print(result_string)
+
+        
+        match = re.search(r'action:([^,]+)', result_string)
+        if match:
+            action_value = match.group(1)
+            print(action_value)  
+
+            result_string = "action:" + action_value + ",power"
+
+            if(action_value == "push"):
+                ser.write(result_string.encode("utf-8"))
+                #isNeutral = True
+                print("push")
+            if (action_value == "pull"):
+                ser.write(result_string.encode("utf-8"))
+                #isNeutral = True
+                print("pull")
+            if (action_value == "left"):
+                ser.write(result_string.encode("utf-8"))
+                print("left")
+                #isNeutral = True
+            if (action_value == "right"):
+                ser.write(result_string.encode("utf-8"))
+                print("right")
+                #isNeutral = True
+            if (action_value == "neutral"):
+                if isNeutral: 
+                    ser.write(result_string.encode("utf-8"))
+                    #isNeutral = False
 
 
