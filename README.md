@@ -1,14 +1,14 @@
-**Brainwaves**
+**#Brainwaves**
 
 Welkom bij ons project, waarin we de Emotiv Cortex API integreren voor een eindwerk in het 6de jaar industriële wetenschappen. Deze code is geschreven door Jarne Qualy en Jules Pruvost. Het project maakt gebruik van de Emotiv Cortex API om hersenactiviteit te meten en deze data te gebruiken om een klein autootje aan te sturen via een Arduino.
 
-**Bestanden**
+**##Bestanden**
 
-**Connect.py**
+**###Connect.py**
 
 Dit script start de connectie met de Emotiv Cortex API en haalt de noodzakelijke accountgegevens (zoals de client token en client secret) op uit pass.txt.
 
-**pass.txt**
+**###pass.txt**
 
 Dit bestand bevat de client token, client secret en de profile name. Zorg ervoor dat dit bestand goed beveiligd is, omdat het gevoelige informatie bevat.
 
