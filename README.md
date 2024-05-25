@@ -1,4 +1,4 @@
-#Brainwaves
+# Brainwaves
 
 Welkom bij ons project, waarin we de Emotiv Cortex API integreren voor een eindwerk in het 6de jaar industriële wetenschappen. Deze code is geschreven door Jarne Qualy en Jules Pruvost. Het project maakt gebruik van de Emotiv Cortex API om hersenactiviteit te meten en deze data te gebruiken om een klein autootje aan te sturen via een Arduino.
 
