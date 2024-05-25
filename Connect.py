@@ -2,7 +2,7 @@ import headset
 from headset import Headset
 import serial
 import time
-import threading
+import json
 
 def getCredentials():
     file = open('pass.txt', 'r')
@@ -19,13 +19,8 @@ def getCredentials():
     return credentials
 
 
-def my_callback(data):
-    ser = serial.Serial('COM3', 9600)  # replace 'COM3' with the port where your Arduino is connected
-    time.sleep(2)  # wait for the serial connection to initializ    e
-
-    ser.write(data)  # send data to the Arduino
-
 if __name__ == "__main__":
+    time.sleep(2)
     credentials = getCredentials()
 
     client_id = credentials["id"]
@@ -33,7 +28,7 @@ if __name__ == "__main__":
     profile_name = credentials["profile_name"]
 
     try:
-        headset = Headset(client_id, client_secret, callback=my_callback)
+        headset = Headset(client_id, client_secret)
         headset.start(profile_name, "EPOCX-E5020776")
         print("Headset connected")
         headset.subscribe_data(['com'])
@@ -42,5 +37,20 @@ if __name__ == "__main__":
     finally:
         print("Program stopped.")
 
+
+    
+#c data: {'action': 'neutral', 'power': 0.0, 'time': 1715171786.76}
+#the JSON object must be str, bytes or bytearray, not dict
+
+
+#mc data: {'action': 'neutral', 'power': 0.0, 'time': 1715171955.691}
+#{"action": "neutral", "power": 0.0, "time": 1715171955.691}
+#name 'power' is not defined
+#mc data: {'action': 'neutral', 'power': 0.0, 'time': 1715171955.8161}
+#{"action": "neutral", "power": 0.0, "time": 1715171955.8161}
+#name 'power' is not defined
+#mc data: {'action': 'neutral', 'power': 0.0, 'time': 1715171955.9407}
+
+#action:push,power:0.0
 
     
